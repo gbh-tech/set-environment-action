@@ -1,5 +1,9 @@
-name: 'Set environment variables'
+name: 'Set ENVIRONMENT env var'
 description: 'Set ENVIRONMENT and other variables'
+author: 'gbh-tech'
+branding:
+  icon: 'info'
+  color: 'gray-dark'
 
 outputs:
   environment:
