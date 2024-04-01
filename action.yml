@@ -33,7 +33,7 @@ runs:
         if [[ "$CURRENT_REF" =~ ^v([0-9].[0-9].[0-9])$ ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
-        elif [[ "$CURRENT_REF" =~ ^v([0-9].[0-9].[0-9])(-uat.[0-9]{2})$ ]]; then
+        elif [[ "$CURRENT_REF" =~ ^v([0-9].[0-9].[0-9])(-uat.[0-9]{1,2})$ ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
         elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]]; then

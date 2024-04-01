@@ -37,8 +37,8 @@ This action can output the following environment names:
 The environment name mapping is as follows:
 
 - Push event on a branch with name `main` -> Outputs environment **stage**.
-- Tag push matching `vYYYYMMDD-XX-uat` -> Outputs **uat**.
-- Tag matching `vYYYYMMDD-XX` -> Outputs **production**.
+- Tag push matching `v[0-9].[0-9].[0-9]-uat.[0-9]` -> Outputs **uat**.
+- Tag matching `v[0-9].[0-9].[0-9]` -> Outputs **production**.
 
 The Action uses `github.ref_name` to determine the branch or tag name.
 
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: gbh-tech/set-environment-action@v0.0.1
+      - uses: gbh-tech/set-environment-action@v0.1.1
         id: env
       # Using outputs
       - name: Show the selected environment name using output
