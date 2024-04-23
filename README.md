@@ -47,7 +47,7 @@ The Action uses `github.ref_name` to determine the branch or tag name.
 See [action.yml](action.yml) for more info about the action.
 
 ```yaml
-- uses: gbh-tech/set-environment-action@v0.0.1
+- uses: gbh-tech/set-environment-action@v0.1.1
   id: env
 ```
 
@@ -61,11 +61,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: gbh-tech/set-environment-action@v0.1.1
         id: env
+
       # Using outputs
       - name: Show the selected environment name using output
         env:
           ENVIRONMENT: ${{ steps.env.outputs.environment }}
         run: echo "Environment is ${ENVIRONMENT}"
+
       # Using env. context
       - name: Show the selected environment name using env context
         run: echo "Environment is ${{ env.ENVIRONMENT }}"

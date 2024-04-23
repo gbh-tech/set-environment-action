@@ -33,15 +33,19 @@ runs:
         if [[ "$CURRENT_REF" =~ ^v([0-9].[0-9].[0-9])$ ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
+          echo "ENVIRONMENT set to 'production'."
         elif [[ "$CURRENT_REF" =~ ^v([0-9].[0-9].[0-9])(-uat.[0-9]{1,2})$ ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
+          echo "ENVIRONMENT set to 'uat'."
         elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
+          echo "ENVIRONMENT set to 'stage'."
         elif [[ "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
+          echo "ENVIRONMENT set to 'stage'."
         else
           echo "Error:"
           echo "The tag created for this deployment does not match defined conventions."
