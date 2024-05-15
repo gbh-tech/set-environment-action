@@ -30,11 +30,11 @@ runs:
         echo "Identified default branch : ${DEFAULT_BRANCH}"
         echo "Current git reference : ${CURRENT_REF}"
 
-        if [[ "$CURRENT_REF" =~ ^v([0-9].[0-9].[0-9])$ ]]; then
+        if [[ "$CURRENT_REF" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})$ ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
           echo "ENVIRONMENT set to 'production'."
-        elif [[ "$CURRENT_REF" =~ ^v([0-9].[0-9].[0-9])(-uat.[0-9]{1,2})$ ]]; then
+        elif [[ "$CURRENT_REF" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})(-uat.[0-9]{1,2})$ ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
           echo "ENVIRONMENT set to 'uat'."
