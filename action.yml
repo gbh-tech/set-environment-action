@@ -9,61 +9,135 @@ outputs:
   environment:
     description: 'Target environment to use'
     value: ${{ steps.set-environment.outputs.environment }}
+
+
+    
 runs:
   using: "composite"
   steps:
-    - name: Determine current environment using the current git ref
-      shell: bash -leo pipefail {0}
-      id: set-environment
-      run: |
-        set_env() { echo "$1" >> "$GITHUB_ENV"; }
-        set_output() { echo "$1" >> "$GITHUB_OUTPUT"; }
+  - name: Determine current environment using the current git ref
+    shell: bash -leo pipefail {0}
+    id: set-environment
+    run: |
+      set_env()   { echo "$1" >> "$GITHUB_ENV"; }
+      set_output() { echo "$1" >> "$GITHUB_OUTPUT"; }
 
-        echo "Printing current environment variables for debugging purposes..."
-        env | grep GITHUB_
+      echo "== Debug env (trimmed to GITHUB_*) =="
+      env | grep ^GITHUB_ || true
+      echo
 
-        DEV_EVENTS=(push pull_request workflow_dispatch)
-        DEFAULT_BRANCH=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')
-        CURRENT_REF=${GITHUB_REF##*/}
+      DEV_EVENTS=(push pull_request workflow_dispatch)
+      DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | sed -n '/HEAD branch/s/.*: //p')
+      CURRENT_REF=${GITHUB_REF##*/}
 
-        echo "Identified default branch : ${DEFAULT_BRANCH}"
-        echo "Current git reference     : ${CURRENT_REF}"
+      echo "Default branch : ${DEFAULT_BRANCH:-<unknown>}"
+      echo "GITHUB_REF     : ${GITHUB_REF}"
+      echo "Current ref    : ${CURRENT_REF}"
+      echo
 
-        # Convetional release: vX.Y.Z
-        if [[ "$CURRENT_REF" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-          set_env "ENVIRONMENT=production"
-          set_output "environment=production"
-          echo "ENVIRONMENT set to 'production'."
+      # -------------------------
+      # Regex helpers (unquoted!)
+      # -------------------------
+      # Old tags
+      re_old_prod='^v[0-9]+\.[0-9]+\.[0-9]+$'
+      re_old_uat='^v[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
 
-        elif [[ "$CURRENT_REF" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)-uat\.([0-9]+)$ ]]; then
-          set_env "ENVIRONMENT=uat"
-          set_output "environment=uat"
-          echo "ENVIRONMENT set to 'uat'."
+      # New tags (be liberal): anything ending with @<semver> or @<semver>-uat.N
+      # Accept multiple path segments and extra '@' in path.
+      re_new_uat='^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
+      re_new_prod='^.+@[0-9]+\.[0-9]+\.[0-9]+$'
 
-        # Convetional release: @scope/pkg@X.Y.Z  OR  pkg@X.Y.Z
-        elif [[ "$CURRENT_REF" =~ ^(@[^@/]+/)?[^@]+@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          set_env "ENVIRONMENT=production"
-          set_output "environment=production"
-          echo "ENVIRONMENT set to 'production'."
+      # -------------- MATCHES --------------
+      if [[ "$CURRENT_REF" =~ $re_old_prod ]]; then
+        echo "Matched: old production ($re_old_prod)"
+        set_env "ENVIRONMENT=production"; set_output "environment=production"
 
-        elif [[ "$CURRENT_REF" =~ ^(@[^@/]+/)?[^@]+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$ ]]; then
-          set_env "ENVIRONMENT=uat"
-          set_output "environment=uat"
-          echo "ENVIRONMENT set to 'uat'."
+      elif [[ "$CURRENT_REF" =~ $re_old_uat ]]; then
+        echo "Matched: old uat ($re_old_uat)"
+        set_env "ENVIRONMENT=uat"; set_output "environment=uat"
 
-        elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]]; then
-          set_env "ENVIRONMENT=stage"
-          set_output "environment=stage"
-          echo "ENVIRONMENT set to 'stage' (default branch)."
+      # Check UAT before prod so -uat.N doesn't fall through to prod
+      elif [[ "$CURRENT_REF" =~ $re_new_uat ]]; then
+        echo "Matched: new uat ($re_new_uat)"
+        set_env "ENVIRONMENT=uat"; set_output "environment=uat"
 
-        elif [[ "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
-          set_env "ENVIRONMENT=stage"
-          set_output "environment=stage"
-          echo "ENVIRONMENT set to 'stage'."
+      elif [[ "$CURRENT_REF" =~ $re_new_prod ]]; then
+        echo "Matched: new production ($re_new_prod)"
+        set_env "ENVIRONMENT=production"; set_output "environment=production"
 
-        else
-          echo "Error:"
-          echo "The ref '$CURRENT_REF' does not match any supported conventions."
-          echo "Check the README's 'Releases and deployments' section for details."
-          exit 1
-        fi
+      elif [[ -n "$DEFAULT_BRANCH" && "$CURRENT_REF" == "$DEFAULT_BRANCH" ]]; then
+        echo "Matched: default branch"
+        set_env "ENVIRONMENT=stage"; set_output "environment=stage"
+
+      elif [[ " ${DEV_EVENTS[*]} " == *" $GITHUB_EVENT_NAME "* ]]; then
+        echo "Matched: dev event ($GITHUB_EVENT_NAME)"
+        set_env "ENVIRONMENT=stage"; set_output "environment=stage"
+
+      else
+        echo "Error: ref '$CURRENT_REF' does not match any supported convention."
+        echo " Hint: expected one of:"
+        echo "   - vX.Y.Z"
+        echo "   - vX.Y.Z-uat.N"
+        echo "   - <anything>@X.Y.Z"
+        echo "   - <anything>@X.Y.Z-uat.N"
+        exit 1
+      fi
+
+      echo "ENVIRONMENT => $(grep '^ENVIRONMENT=' "$GITHUB_ENV" | tail -1 | cut -d= -f2)"
+
+
+  # - name: Determine current environment using the current git ref
+  #   shell: bash -leo pipefail {0}
+  #   id: set-environment
+  #   run: |
+  #     set_env() { echo "$1" >> "$GITHUB_ENV"; }
+  #     set_output() { echo "$1" >> "$GITHUB_OUTPUT"; }
+
+  #     echo "Printing current environment variables for debugging purposes..."
+  #     env | grep GITHUB_
+
+  #     DEV_EVENTS=(push pull_request workflow_dispatch)
+  #     DEFAULT_BRANCH=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')
+  #     CURRENT_REF=${GITHUB_REF##*/}
+
+  #     echo "Identified default branch : ${DEFAULT_BRANCH}"
+  #     echo "Current git reference     : ${CURRENT_REF}"
+
+  #     # Convetional release: vX.Y.Z
+  #     if [[ "$CURRENT_REF" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+  #       set_env "ENVIRONMENT=production"
+  #       set_output "environment=production"
+  #       echo "ENVIRONMENT set to 'production'."
+
+  #     elif [[ "$CURRENT_REF" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)-uat\.([0-9]+)$ ]]; then
+  #       set_env "ENVIRONMENT=uat"
+  #       set_output "environment=uat"
+  #       echo "ENVIRONMENT set to 'uat'."
+
+  #     # Convetional release: @scope/pkg@X.Y.Z  OR  pkg@X.Y.Z
+  #     elif [[ "$CURRENT_REF" =~ ^(@[^@/]+/)?[^@]+@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  #       set_env "ENVIRONMENT=production"
+  #       set_output "environment=production"
+  #       echo "ENVIRONMENT set to 'production'."
+
+  #     elif [[ "$CURRENT_REF" =~ ^(@[^@/]+/)?[^@]+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$ ]]; then
+  #       set_env "ENVIRONMENT=uat"
+  #       set_output "environment=uat"
+  #       echo "ENVIRONMENT set to 'uat'."
+
+  #     elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]]; then
+  #       set_env "ENVIRONMENT=stage"
+  #       set_output "environment=stage"
+  #       echo "ENVIRONMENT set to 'stage' (default branch)."
+
+  #     elif [[ "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
+  #       set_env "ENVIRONMENT=stage"
+  #       set_output "environment=stage"
+  #       echo "ENVIRONMENT set to 'stage'."
+
+  #     else
+  #       echo "Error:"
+  #       echo "The ref '$CURRENT_REF' does not match any supported conventions."
+  #       echo "Check the README's 'Releases and deployments' section for details."
+  #       exit 1
+  #     fi
