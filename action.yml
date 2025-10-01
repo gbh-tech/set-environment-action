@@ -30,12 +30,12 @@ runs:
         echo "Current git reference     : ${CURRENT_REF}"
 
         # Convetional release: vX.Y.Z
-        if [[ "$CURRENT_REF" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})$ ]]; then
+        if [[ "$CURRENT_REF" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
           echo "ENVIRONMENT set to 'production'."
 
-        elif [[ "$CURRENT_REF" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})(-uat.[0-9]{1,2})$ ]]; then
+        elif [[ "$CURRENT_REF" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)-uat\.([0-9]+)$ ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
           echo "ENVIRONMENT set to 'uat'."
