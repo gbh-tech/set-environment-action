@@ -26,18 +26,21 @@ runs:
         DEV_EVENTS=(push pull_request workflow_dispatch)
         DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | sed -n '/HEAD branch/s/.*: //p')
 
+        CURRENT_REF=${GITHUB_REF##*/}
         # Input ref handling
         if [[ -n "${FORCE_REF:-}" ]]; then
           echo "⚡ Overriding GITHUB_REF with FORCE_REF=$FORCE_REF"
           GITHUB_REF="$FORCE_REF"
         fi
 
-        CURRENT_REF=${GITHUB_REF##*/}
 
         echo "Default branch : ${DEFAULT_BRANCH:-<unknown>}"
         echo "GITHUB_REF     : ${GITHUB_REF}"
         echo "Current ref    : ${CURRENT_REF}"
         echo
+
+        re_pkg_prod='^.+@[0-9]+\.[0-9]+\.[0-9]+$'
+        re_pkg_uat='^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
 
         # ------------------------
         # STANDARD CONVENTION
@@ -58,13 +61,13 @@ runs:
         # PACKAGE CONVENTION
         # ------------------------
         # pkg@X.Y.Z or @scope/pkg@X.Y.Z -> production
-        elif [[ "$CURRENT_REF" =~ ^.+@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        elif [[ "$CURRENT_REF" =~ $re_pkg_prod ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
           echo "Matched package convention: production"
 
         # pkg@X.Y.Z-uat.N or @scope/pkg@X.Y.Z-uat.N -> uat
-        elif [[ "$CURRENT_REF" =~ ^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$ ]]; then
+        elif [[ "$CURRENT_REF" =~ $re_pkg_uat ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
           echo "Matched package convention: uat"
