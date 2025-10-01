@@ -31,6 +31,7 @@ runs:
         if [[ -n "${FORCE_REF:-}" ]]; then
           echo "⚡ Overriding GITHUB_REF with FORCE_REF=$FORCE_REF"
           GITHUB_REF="$FORCE_REF"
+          CURRENT_REF="$FORCE_REF"
         fi
 
 
@@ -75,12 +76,12 @@ runs:
         # ------------------------
         # BRANCH / EVENTS
         # ------------------------
-        elif [[ "$CURRENT_REF" == "$DEFAULT_BRANCH" ]];; then
+        elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]];; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "Matched default branch: stage"
 
-        elif [[ "${DEV_EVENTS[*]}" == "$GITHUB_EVENT_NAME" ]]; then
+        elif [[ "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "Matched dev event: stage"
