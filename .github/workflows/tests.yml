@@ -1,51 +1,151 @@
-name: 🧪 Tests
+name: 🧪 Comprehensive Tests
 
 on:
-  push:
-    paths-ignore:
-      - 'CODE_OF_CONDUCT`'
-      - 'LICENSE'
-      - 'README.md'
-    branches:
-      - main
-    tags:
-      - v[0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2}
-      - v[0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2}-uat.[0-9]
   pull_request:
     paths-ignore:
-      - 'CODE_OF_CONDUCT`'
+      - 'CODE_OF_CONDUCT'
       - 'LICENSE'
       - 'README.md'
+      - 'TESTING.md'
     branches:
       - main
+      - develop
 
 concurrency:
   group: '${{ github.workflow }} @ ${{ github.ref }}'
   cancel-in-progress: true
 
 jobs:
-  test:
+  test-all-conventions:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test_case:
+          # Conventional release tags
+          - name: "Conventional Release v1.0.0"
+            tag: "v1.0.0"
+            expected_env: "production"
+          - name: "Conventional Release v1.2.3"
+            tag: "v1.2.3"
+            expected_env: "production"
+          - name: "Conventional Release v10.20.30"
+            tag: "v10.20.30"
+            expected_env: "production"
+          - name: "Conventional Release v99.99.99"
+            tag: "v99.99.99"
+            expected_env: "production"
+          
+          # UAT tags
+          - name: "UAT Release v1.0.0-uat.1"
+            tag: "v1.0.0-uat.1"
+            expected_env: "uat"
+          - name: "UAT Release v1.2.3-uat.5"
+            tag: "v1.2.3-uat.5"
+            expected_env: "uat"
+          - name: "UAT Release v10.20.30-uat.99"
+            tag: "v10.20.30-uat.99"
+            expected_env: "uat"
+          
+          # Package release tags
+          - name: "Package Release @gbh-tech/internal-jobs@1.0.0"
+            tag: "@gbh-tech/internal-jobs@1.0.0"
+            expected_env: "production"
+          - name: "Package Release @scope/@gbh-tech/internal-jobs@1.0.0"
+            tag: "@scope/@gbh-tech/internal-jobs@1.0.0"
+            expected_env: "production"
+          
+          # UAT package tags
+          - name: "UAT Package @gbh-tech/internal-jobs@1.0.0-uat.1"
+            tag: "@gbh-tech/internal-jobs@1.0.0-uat.1"
+            expected_env: "uat"
+          - name: "UAT Package @scope/@gbh-tech/internal-jobs@1.0.0-uat.1"
+            tag: "@scope/@gbh-tech/internal-jobs@1.0.0-uat.1"
+            expected_env: "uat"
+
+          # Edge cases
+          - name: "Edge Case v0.0.0"
+            tag: "v0.0.0"
+            expected_env: "production"
+          - name: "Edge Case v1.0.0-uat.0"
+            tag: "v1.0.0-uat.0"
+            expected_env: "uat"
+          - name: "Edge Case @gbh-tech/internal-jobs@0.0.0"
+            tag: "@gbh-tech/internal-jobs@0.0.0"
+            expected_env: "production"
+          - name: "Edge Case @gbh-tech/internal-jobs@1.0.0-uat.0"
+            tag: "@gbh-tech/internal-jobs@1.0.0-uat.0"
+            expected_env: "uat"
+    
     steps:
       - name: 💻 Checkout current code ref
         uses: actions/checkout@v4
 
+      - name: 🏷️ Create test tag
+        run: |
+          git config user.name "Test User"
+          git config user.email "test@example.com"
+          git tag ${{ matrix.test_case.tag }}
+          echo "Created tag: ${{ matrix.test_case.tag }}"
+
       - name: 📝 Set ENVIRONMENT
         id: env
         uses: ./
+        env:
+          GITHUB_REF: refs/tags/${{ matrix.test_case.tag }}
 
-      - name: Check ENVIRONMENT matches expected value
+      - name: ✅ Verify environment for ${{ matrix.test_case.name }}
         run: |
-          if [[ "$GITHUB_REF_NAME" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})$ ]]; then
-            if [[ ${{ steps.env.outputs.environment }} != 'production' ]]; then
-              exit 1;
-            fi
-          elif [[ "$GITHUB_REF_NAME" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})(-uat.[0-9]{1,2})$ ]]; then
-            if [[ ${{ steps.env.outputs.environment }} != 'uat' ]]; then
-              exit 1;
-            fi
-          else
-            if [[ ${{ steps.env.outputs.environment }} != 'stage' ]]; then
-              exit 1;
-            fi
+          if [[ "${{ steps.env.outputs.environment }}" != "${{ matrix.test_case.expected_env }}" ]]; then
+            echo "❌ Expected '${{ matrix.test_case.expected_env }}' but got '${{ steps.env.outputs.environment }}' for tag ${{ matrix.test_case.tag }}"
+            exit 1
           fi
+          echo "✅ Correctly set to '${{ matrix.test_case.expected_env }}' for ${{ matrix.test_case.name }}"
+
+      - name: 🧪 Test environment variable is set
+        run: |
+          if [[ -z "$ENVIRONMENT" ]]; then
+            echo "❌ ENVIRONMENT variable is not set"
+            exit 1
+          fi
+          echo "✅ ENVIRONMENT variable is set to: $ENVIRONMENT"
+
+  test-invalid-tags:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tag: 
+          - 'invalid-tag'
+          - 'v1.0'
+          - 'v1.0.0.0'
+          - '1.0.0'
+          - 'release-1.0.0'
+          - 'v1.0.0-beta'
+          - 'v1.0.0-alpha.1'
+          - '@gbh-tech/internal-jobs@1.0'
+          - '@gbh-tech/internal-jobs@1.0.0-beta'
+    
+    steps:
+      - name: 💻 Checkout current code ref
+        uses: actions/checkout@v4
+
+      - name: 🏷️ Create test tag
+        run: |
+          git config user.name "Test User"
+          git config user.email "test@example.com"
+          git tag ${{ matrix.tag }}
+          echo "Created tag: ${{ matrix.tag }}"
+
+      - name: 📝 Set ENVIRONMENT (should fail)
+        id: env
+        uses: ./
+        env:
+          GITHUB_REF: refs/tags/${{ matrix.tag }}
+        continue-on-error: true
+
+      - name: ✅ Verify action fails for invalid tag ${{ matrix.tag }}
+        run: |
+          if [[ "${{ steps.env.outcome }}" == "success" ]]; then
+            echo "❌ Action should have failed for invalid tag ${{ matrix.tag }} but it succeeded"
+            exit 1
+          fi
+          echo "✅ Action correctly failed for invalid tag ${{ matrix.tag }}"

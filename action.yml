@@ -9,7 +9,6 @@ outputs:
   environment:
     description: 'Target environment to use'
     value: ${{ steps.set-environment.outputs.environment }}
-
 runs:
   using: "composite"
   steps:
@@ -17,8 +16,8 @@ runs:
       shell: bash -leo pipefail {0}
       id: set-environment
       run: |
-        set_env() { echo "$1" >> $GITHUB_ENV; }
-        set_output() { echo "$1" >> $GITHUB_OUTPUT; }
+        set_env() { echo "$1" >> "$GITHUB_ENV"; }
+        set_output() { echo "$1" >> "$GITHUB_OUTPUT"; }
 
         echo "Printing current environment variables for debugging purposes..."
         env | grep GITHUB_
@@ -28,27 +27,43 @@ runs:
         CURRENT_REF=${GITHUB_REF##*/}
 
         echo "Identified default branch : ${DEFAULT_BRANCH}"
-        echo "Current git reference : ${CURRENT_REF}"
+        echo "Current git reference     : ${CURRENT_REF}"
 
+        # Convetional release: vX.Y.Z
         if [[ "$CURRENT_REF" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})$ ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
           echo "ENVIRONMENT set to 'production'."
+
         elif [[ "$CURRENT_REF" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})(-uat.[0-9]{1,2})$ ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
           echo "ENVIRONMENT set to 'uat'."
+
+        # Convetional release: @scope/pkg@X.Y.Z  OR  pkg@X.Y.Z
+        elif [[ "$CURRENT_REF" =~ ^(@[^@/]+/)?[^@]+@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          set_env "ENVIRONMENT=production"
+          set_output "environment=production"
+          echo "ENVIRONMENT set to 'production'."
+
+        elif [[ "$CURRENT_REF" =~ ^(@[^@/]+/)?[^@]+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$ ]]; then
+          set_env "ENVIRONMENT=uat"
+          set_output "environment=uat"
+          echo "ENVIRONMENT set to 'uat'."
+
         elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
-          echo "ENVIRONMENT set to 'stage'."
+          echo "ENVIRONMENT set to 'stage' (default branch)."
+
         elif [[ "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "ENVIRONMENT set to 'stage'."
+
         else
           echo "Error:"
-          echo "The tag created for this deployment does not match defined conventions."
-          echo "Check the README's 'Releases and deployments' section for more details."
+          echo "The ref '$CURRENT_REF' does not match any supported conventions."
+          echo "Check the README's 'Releases and deployments' section for details."
           exit 1
         fi
