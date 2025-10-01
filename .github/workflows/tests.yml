@@ -91,7 +91,7 @@ jobs:
         id: env
         uses: ./
         env:
-          GITHUB_REF: refs/tags/${{ matrix.test_case.tag }}
+          GITHUB_REF: ${{ matrix.test_case.tag }}
 
       - name: ✅ Verify environment for ${{ matrix.test_case.name }}
         run: |
@@ -139,7 +139,7 @@ jobs:
         id: env
         uses: ./
         env:
-          GITHUB_REF: refs/tags/${{ matrix.tag }}
+          GITHUB_REF: ${{ matrix.tag }}
         continue-on-error: true
 
       - name: ✅ Verify action fails for invalid tag ${{ matrix.tag }}
