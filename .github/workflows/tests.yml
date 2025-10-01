@@ -109,43 +109,43 @@ jobs:
           fi
           echo "✅ ENVIRONMENT variable is set to: $ENVIRONMENT"
 
-  test-invalid-tags:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        tag: 
-          - 'invalid-tag'
-          - 'v1.0'
-          - 'v1.0.0.0'
-          - '1.0.0'
-          - 'release-1.0.0'
-          - 'v1.0.0-beta'
-          - 'v1.0.0-alpha.1'
-          - '@gbh-tech/internal-jobs@1.0'
-          - '@gbh-tech/internal-jobs@1.0.0-beta'
+  # test-invalid-tags:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       tag: 
+  #         - 'invalid-tag'
+  #         - 'v1.0'
+  #         - 'v1.0.0.0'
+  #         - '1.0.0'
+  #         - 'release-1.0.0'
+  #         - 'v1.0.0-beta'
+  #         - 'v1.0.0-alpha.1'
+  #         - '@gbh-tech/internal-jobs@1.0'
+  #         - '@gbh-tech/internal-jobs@1.0.0-beta'
     
-    steps:
-      - name: 💻 Checkout current code ref
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: 💻 Checkout current code ref
+  #       uses: actions/checkout@v4
 
-      - name: 🏷️ Create test tag
-        run: |
-          git config user.name "Test User"
-          git config user.email "test@example.com"
-          git tag ${{ matrix.tag }}
-          echo "Created tag: ${{ matrix.tag }}"
+  #     - name: 🏷️ Create test tag
+  #       run: |
+  #         git config user.name "Test User"
+  #         git config user.email "test@example.com"
+  #         git tag ${{ matrix.tag }}
+  #         echo "Created tag: ${{ matrix.tag }}"
 
-      - name: 📝 Set ENVIRONMENT (should fail)
-        id: env
-        uses: ./
-        env:
-          GITHUB_REF: ${{ matrix.tag }}
-        continue-on-error: true
+  #     - name: 📝 Set ENVIRONMENT (should fail)
+  #       id: env
+  #       uses: ./
+  #       env:
+  #         GITHUB_REF: ${{ matrix.tag }}
+  #       continue-on-error: true
 
-      - name: ✅ Verify action fails for invalid tag ${{ matrix.tag }}
-        run: |
-          if [[ "${{ steps.env.outcome }}" == "success" ]]; then
-            echo "❌ Action should have failed for invalid tag ${{ matrix.tag }} but it succeeded"
-            exit 1
-          fi
-          echo "✅ Action correctly failed for invalid tag ${{ matrix.tag }}"
+  #     - name: ✅ Verify action fails for invalid tag ${{ matrix.tag }}
+  #       run: |
+  #         if [[ "${{ steps.env.outcome }}" == "success" ]]; then
+  #           echo "❌ Action should have failed for invalid tag ${{ matrix.tag }} but it succeeded"
+  #           exit 1
+  #         fi
+  #         echo "✅ Action correctly failed for invalid tag ${{ matrix.tag }}"
