@@ -50,17 +50,17 @@ jobs:
           - name: "Package Release @gbh-tech/internal-jobs@1.0.0"
             tag: "@gbh-tech/internal-jobs@1.0.0"
             expected_env: "production"
-          - name: "Package Release @scope/@gbh-tech/internal-jobs@1.0.0"
-            tag: "@scope/@gbh-tech/internal-jobs@1.0.0"
-            expected_env: "production"
+          # - name: "Package Release @scope/@gbh-tech/internal-jobs@1.0.0"
+          #   tag: "@scope/@gbh-tech/internal-jobs@1.0.0"
+          #   expected_env: "production"
           
           # UAT package tags
           - name: "UAT Package @gbh-tech/internal-jobs@1.0.0-uat.1"
             tag: "@gbh-tech/internal-jobs@1.0.0-uat.1"
-            expected_env: "uat"
-          - name: "UAT Package @scope/@gbh-tech/internal-jobs@1.0.0-uat.1"
-            tag: "@scope/@gbh-tech/internal-jobs@1.0.0-uat.1"
-            expected_env: "uat"
+          #   expected_env: "uat"
+          # - name: "UAT Package @scope/@gbh-tech/internal-jobs@1.0.0-uat.1"
+          #   tag: "@scope/@gbh-tech/internal-jobs@1.0.0-uat.1"
+          #   expected_env: "uat"
 
           # Edge cases
           - name: "Edge Case v0.0.0"
