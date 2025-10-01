@@ -6,7 +6,6 @@ on:
       - 'CODE_OF_CONDUCT'
       - 'LICENSE'
       - 'README.md'
-      - 'TESTING.md'
     branches:
       - main
       - develop
@@ -91,7 +90,7 @@ jobs:
         id: env
         uses: ./
         env:
-          GITHUB_REF: ${{ matrix.test_case.tag }}
+          FORCE_REF: ${{ matrix.test_case.tag }}
 
       - name: ✅ Verify environment for ${{ matrix.test_case.name }}
         run: |

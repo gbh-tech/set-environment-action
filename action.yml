@@ -25,6 +25,13 @@ runs:
 
         DEV_EVENTS=(push pull_request workflow_dispatch)
         DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | sed -n '/HEAD branch/s/.*: //p')
+
+        # Input ref handling
+        if [[ -n "${FORCE_REF:-}" ]]; then
+          echo "⚡ Overriding GITHUB_REF with FORCE_REF=$FORCE_REF"
+          GITHUB_REF="$FORCE_REF"
+        fi
+
         CURRENT_REF=${GITHUB_REF##*/}
 
         echo "Default branch : ${DEFAULT_BRANCH:-<unknown>}"
@@ -65,12 +72,12 @@ runs:
         # ------------------------
         # BRANCH / EVENTS
         # ------------------------
-        elif [[ -n "$DEFAULT_BRANCH" && "$CURRENT_REF" == "$DEFAULT_BRANCH" ]]; then
+        elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]];; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "Matched default branch: stage"
 
-        elif [[ " ${DEV_EVENTS[*]} " == *" $GITHUB_EVENT_NAME "* ]]; then
+        elif [[ "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "Matched dev event: stage"
