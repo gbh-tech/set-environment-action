@@ -73,20 +73,15 @@ runs:
         # ------------------------
         # BRANCH / EVENTS
         # ------------------------
-        # stage if we're on the default branch (only when DEFAULT_BRANCH is known)
-        elif [[ -n "$DEFAULT_BRANCH" && "$CURRENT_REF" == "$DEFAULT_BRANCH" ]]; then
+        elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "Matched default branch: stage"
 
-        # stage for PR/push/workflow_dispatch events
-        elif [[ " ${DEV_EVENTS[*]} " == *" ${GITHUB_EVENT_NAME} "* ]]; then
-          # DEV_EVENTS=(push pull_request workflow_dispatch)
-          # Works for: pull_request (refs/pull/.../merge), push, workflow_dispatch
+        elif [[ -z "${FORCE_REF:-}" && "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "Matched dev event: stage"
-
 
         else
           echo "Error: ref '$CURRENT_REF' does not match any supported convention."
