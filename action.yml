@@ -39,9 +39,6 @@ runs:
         echo "Current ref    : ${CURRENT_REF}"
         echo
 
-        re_pkg_prod='^.+@[0-9]+\.[0-9]+\.[0-9]+$'
-        re_pkg_uat='^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
-
         # ------------------------
         # STANDARD CONVENTION
         # ------------------------
@@ -62,13 +59,13 @@ runs:
         # ------------------------
 
         # pkg@X.Y.Z or @scope/pkg@X.Y.Z -> production
-        elif [[ "$CURRENT_REF" =~ $re_pkg_prod ]]; then
+        elif [[ "$CURRENT_REF" =~ ^.+@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
           echo "Matched package convention: production"
 
         # pkg@X.Y.Z-uat.N or @scope/pkg@X.Y.Z-uat.N -> uat
-        elif [[ "$CURRENT_REF" =~ $re_pkg_uat ]]; then
+        elif [[ "$CURRENT_REF" =~ ^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$ ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
           echo "Matched package convention: uat"
@@ -76,12 +73,12 @@ runs:
         # ------------------------
         # BRANCH / EVENTS
         # ------------------------
-        elif [[ "$CURRENT_REF" == "$DEFAULT_BRANCH" ]]; then
+        elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "Matched default branch: stage"
 
-        elif [[ "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
+        elif [[ "${DEV_EVENTS[*]}" == "$GITHUB_EVENT_NAME" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "Matched dev event: stage"

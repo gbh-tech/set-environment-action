@@ -86,7 +86,7 @@ jobs:
         id: test-invalid-tag
         uses: ./
         env:
-          FORCE_REF: invalid-tag
+          FORCE_REF: "1.1"
         continue-on-error: true
 
       - name: ✅ Verify invalid-tag fails
