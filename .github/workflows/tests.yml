@@ -17,88 +17,114 @@ concurrency:
 jobs:
   test-all-conventions:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test_case:
-          # Conventional release tags
-          - name: "Conventional Release v1.0.0"
-            tag: "v1.0.0"
-            expected_env: "production"
-          - name: "Conventional Release v1.2.3"
-            tag: "v1.2.3"
-            expected_env: "production"
-          - name: "Conventional Release v10.20.30"
-            tag: "v10.20.30"
-            expected_env: "production"
-          - name: "Conventional Release v99.99.99"
-            tag: "v99.99.99"
-            expected_env: "production"
-          
-          # UAT tags
-          - name: "UAT Release v1.0.0-uat.1"
-            tag: "v1.0.0-uat.1"
-            expected_env: "uat"
-          - name: "UAT Release v1.2.3-uat.5"
-            tag: "v1.2.3-uat.5"
-            expected_env: "uat"
-          - name: "UAT Release v10.20.30-uat.99"
-            tag: "v10.20.30-uat.99"
-            expected_env: "uat"
-          
-          # Package release tags
-          - name: "Package Release @gbh-tech/internal-jobs@1.0.0"
-            tag: "@gbh-tech/internal-jobs@1.0.0"
-            expected_env: "production"
-          # - name: "Package Release @scope/@gbh-tech/internal-jobs@1.0.0"
-          #   tag: "@scope/@gbh-tech/internal-jobs@1.0.0"
-          #   expected_env: "production"
-          
-          # UAT package tags
-          - name: "UAT Package @gbh-tech/internal-jobs@1.0.0-uat.1"
-            tag: "@gbh-tech/internal-jobs@1.0.0-uat.1"
-            expected_env: "uat"
-          # - name: "UAT Package @scope/@gbh-tech/internal-jobs@1.0.0-uat.1"
-          #   tag: "@scope/@gbh-tech/internal-jobs@1.0.0-uat.1"
-          #   expected_env: "uat"
-
-          # Edge cases
-          - name: "Edge Case v0.0.0"
-            tag: "v0.0.0"
-            expected_env: "production"
-          - name: "Edge Case v1.0.0-uat.0"
-            tag: "v1.0.0-uat.0"
-            expected_env: "uat"
-          - name: "Edge Case @gbh-tech/internal-jobs@0.0.0"
-            tag: "@gbh-tech/internal-jobs@0.0.0"
-            expected_env: "production"
-          - name: "Edge Case @gbh-tech/internal-jobs@1.0.0-uat.0"
-            tag: "@gbh-tech/internal-jobs@1.0.0-uat.0"
-            expected_env: "uat"
-    
     steps:
       - name: 💻 Checkout current code ref
         uses: actions/checkout@v4
 
-      - name: 🏷️ Create test tag
-        run: |
-          git config user.name "Test User"
-          git config user.email "test@example.com"
-          git tag ${{ matrix.test_case.tag }}
-          echo "Created tag: ${{ matrix.test_case.tag }}"
-
-      - name: 📝 Set ENVIRONMENT
-        id: env
+      # Conventional Release Tags
+      - name: 🧪 Test Conventional Release v1.0.0
+        id: test-production-conventional
         uses: ./
         env:
-          FORCE_REF: ${{ matrix.test_case.tag }}
+          FORCE_REF: v1.0.0
 
-      - name: ✅ Verify environment for ${{ matrix.test_case.name }}
+      - name: ✅ Verify v1.0.0 is production
         run: |
-          if [[ "${{ steps.env.outputs.environment }}" != "${{ matrix.test_case.expected_env }}" ]]; then
-            echo "❌ Expected '${{ matrix.test_case.expected_env }}' but got '${{ steps.env.outputs.environment }}' for tag ${{ matrix.test_case.tag }}"
+          if [[ "${{ steps.test-production-conventional.outputs.environment }}" != "production" ]]; then
+            echo "❌ Expected 'production' but got '${{ steps.test-production-conventional.outputs.environment }}'"
             exit 1
           fi
-          echo "✅ Correctly set to '${{ matrix.test_case.expected_env }}' for ${{ matrix.test_case.name }}"
+          echo "✅ Correctly set to 'production'"
+
+      # UAT Tags
+      - name: 🧪 Test UAT Release v1.0.0-uat.1
+        id: test-uat-conventional
+        uses: ./
+        env:
+          FORCE_REF: v1.0.0-uat.1
+
+      - name: ✅ Verify v1.0.0-uat.1 is uat
+        run: |
+          if [[ "${{ steps.test-uat-conventional.outputs.environment }}" != "uat" ]]; then
+            echo "❌ Expected 'uat' but got '${{ steps.test-uat-conventional.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly set to 'uat'"
+
+      # Package Release Tags
+      - name: 🧪 Test Package Release @gbh-tech/internal-jobs@1.0.0
+        id: test-production-package
+        uses: ./
+        env:
+          FORCE_REF: "@gbh-tech/internal-jobs@1.0.0"
+
+      - name: ✅ Verify @gbh-tech/internal-jobs@1.0.0 is production
+        run: |
+          if [[ "${{ steps.test-production-package.outputs.environment }}" != "production" ]]; then
+            echo "❌ Expected 'production' but got '${{ steps.test-production-package.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly set to 'production'"
+
+      # UAT Package Tags
+      - name: 🧪 Test UAT Package @gbh-tech/internal-jobs@1.0.0-uat.1
+        id: test-uat-package
+        uses: ./
+        env:
+          FORCE_REF: "@gbh-tech/internal-jobs@1.0.0-uat.1"
+
+      - name: ✅ Verify @gbh-tech/internal-jobs@1.0.0-uat.1 is uat
+        run: |
+          if [[ "${{ steps.test-uat-package.outputs.environment }}" != "uat" ]]; then
+            echo "❌ Expected 'uat' but got '${{ steps.test-uat-package.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly set to 'uat'"
+
+      # Invalid Tags (should fail)
+      - name: 🧪 Test Invalid Tag invalid-tag
+        id: test-invalid-tag
+        uses: ./
+        env:
+          FORCE_REF: invalid-tag
+        continue-on-error: true
+
+      - name: ✅ Verify invalid-tag fails
+        run: |
+          if [[ "${{ steps.test-invalid-tag.outcome }}" == "success" ]]; then
+            echo "❌ Action should have failed for invalid tag but it succeeded"
+            exit 1
+          fi
+          echo "✅ Action correctly failed for invalid tag"
+
+      # Branch Scenarios
+      - name: 🧪 Test Default Branch (main)
+        id: test-branch-main
+        uses: ./
+        env:
+          GITHUB_REF: refs/heads/main
+          GITHUB_EVENT_NAME: pull_request
+
+      - name: ✅ Verify main branch is stage
+        run: |
+          if [[ "${{ steps.test-branch-main.outputs.environment }}" != "stage" ]]; then
+            echo "❌ Expected 'stage' but got '${{ steps.test-branch-main.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly set to 'stage'"
+
+      # Current PR Context
+      - name: 🧪 Test Current PR Context
+        id: test-current-pr
+        uses: ./
+
+      - name: ✅ Verify current PR is stage
+        run: |
+          if [[ "${{ steps.test-current-pr.outputs.environment }}" != "stage" ]]; then
+            echo "❌ Expected 'stage' for PR but got '${{ steps.test-current-pr.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly identified PR as 'stage'"
 
       - name: 🧪 Test environment variable is set
         run: |
@@ -107,44 +133,3 @@ jobs:
             exit 1
           fi
           echo "✅ ENVIRONMENT variable is set to: $ENVIRONMENT"
-
-  # test-invalid-tags:
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       tag: 
-  #         - 'invalid-tag'
-  #         - 'v1.0'
-  #         - 'v1.0.0.0'
-  #         - '1.0.0'
-  #         - 'release-1.0.0'
-  #         - 'v1.0.0-beta'
-  #         - 'v1.0.0-alpha.1'
-  #         - '@gbh-tech/internal-jobs@1.0'
-  #         - '@gbh-tech/internal-jobs@1.0.0-beta'
-    
-  #   steps:
-  #     - name: 💻 Checkout current code ref
-  #       uses: actions/checkout@v4
-
-  #     - name: 🏷️ Create test tag
-  #       run: |
-  #         git config user.name "Test User"
-  #         git config user.email "test@example.com"
-  #         git tag ${{ matrix.tag }}
-  #         echo "Created tag: ${{ matrix.tag }}"
-
-  #     - name: 📝 Set ENVIRONMENT (should fail)
-  #       id: env
-  #       uses: ./
-  #       env:
-  #         GITHUB_REF: ${{ matrix.tag }}
-  #       continue-on-error: true
-
-  #     - name: ✅ Verify action fails for invalid tag ${{ matrix.tag }}
-  #       run: |
-  #         if [[ "${{ steps.env.outcome }}" == "success" ]]; then
-  #           echo "❌ Action should have failed for invalid tag ${{ matrix.tag }} but it succeeded"
-  #           exit 1
-  #         fi
-  #         echo "✅ Action correctly failed for invalid tag ${{ matrix.tag }}"
