@@ -78,7 +78,7 @@ runs:
           set_output "environment=stage"
           echo "Matched default branch: stage"
 
-        elif [[ "${DEV_EVENTS[*]}" == "$GITHUB_EVENT_NAME" ]]; then
+        elif [[ "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
           echo "Matched dev event: stage"
