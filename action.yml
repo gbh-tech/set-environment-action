@@ -34,26 +34,25 @@ runs:
           CURRENT_REF="$FORCE_REF"
         fi
 
-
         echo "Default branch : ${DEFAULT_BRANCH:-<unknown>}"
         echo "GITHUB_REF     : ${GITHUB_REF}"
         echo "Current ref    : ${CURRENT_REF}"
         echo
 
-        re_pkg_prod='^.+@[0-9]+\.[0-9]+\.[0-9]+$'
-        re_pkg_uat='^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
-
         # ------------------------
         # STANDARD CONVENTION
         # ------------------------
+        re_standard_prod='^v[0-9]+\.[0-9]+\.[0-9]+$'
+        re_standard_uat='^v[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
+
         # vX.Y.Z -> production
-        if [[ "$CURRENT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        if [[ "$CURRENT_REF" =~ $re_standard_prod ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
           echo "Matched standard convention: production"
 
         # vX.Y.Z-uat.N -> uat
-        elif [[ "$CURRENT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$ ]]; then
+        elif [[ "$CURRENT_REF" =~ $re_standard_uat ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
           echo "Matched standard convention: uat"
@@ -61,6 +60,9 @@ runs:
         # ------------------------
         # PACKAGE CONVENTION
         # ------------------------
+        re_pkg_prod='^.+@[0-9]+\.[0-9]+\.[0-9]+$'
+        re_pkg_uat='^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
+
         # pkg@X.Y.Z or @scope/pkg@X.Y.Z -> production
         elif [[ "$CURRENT_REF" =~ $re_pkg_prod ]]; then
           set_env "ENVIRONMENT=production"
