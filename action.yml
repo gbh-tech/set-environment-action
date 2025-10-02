@@ -17,38 +17,76 @@ runs:
       shell: bash -leo pipefail {0}
       id: set-environment
       run: |
-        set_env() { echo "$1" >> $GITHUB_ENV; }
-        set_output() { echo "$1" >> $GITHUB_OUTPUT; }
+        set_env()    { echo "$1" >> "$GITHUB_ENV"; }
+        set_output() { echo "$1" >> "$GITHUB_OUTPUT"; }
 
-        echo "Printing current environment variables for debugging purposes..."
-        env | grep GITHUB_
+        echo "== Debug: GITHUB env =="
+        env | grep ^GITHUB_ || true
 
         DEV_EVENTS=(push pull_request workflow_dispatch)
-        DEFAULT_BRANCH=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')
+        DEFAULT_BRANCH=$(git remote show origin 2>/dev/null | sed -n '/HEAD branch/s/.*: //p')
+
         CURRENT_REF=${GITHUB_REF##*/}
+        # Input ref handling
+        if [[ -n "${FORCE_REF:-}" ]]; then
+          echo "⚡ Overriding GITHUB_REF with FORCE_REF=$FORCE_REF"
+          GITHUB_REF="$FORCE_REF"
+          CURRENT_REF="$FORCE_REF"
+        fi
 
-        echo "Identified default branch : ${DEFAULT_BRANCH}"
-        echo "Current git reference : ${CURRENT_REF}"
+        echo "Default branch : ${DEFAULT_BRANCH:-<unknown>}"
+        echo "GITHUB_REF     : ${GITHUB_REF}"
+        echo "Current ref    : ${CURRENT_REF}"
+        echo
 
-        if [[ "$CURRENT_REF" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})$ ]]; then
+        # ------------------------
+        # STANDARD CONVENTION
+        # ------------------------
+        # vX.Y.Z -> production
+        if [[ "$CURRENT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
-          echo "ENVIRONMENT set to 'production'."
-        elif [[ "$CURRENT_REF" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})(-uat.[0-9]{1,2})$ ]]; then
+          echo "Matched standard convention: production"
+
+        # vX.Y.Z-uat.N -> uat
+        elif [[ "$CURRENT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$ ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
-          echo "ENVIRONMENT set to 'uat'."
+          echo "Matched standard convention: uat"
+
+        # ------------------------
+        # PACKAGE CONVENTION
+        # ------------------------
+
+        # pkg@X.Y.Z or @scope/pkg@X.Y.Z -> production
+        elif [[ "$CURRENT_REF" =~ ^.+@[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          set_env "ENVIRONMENT=production"
+          set_output "environment=production"
+          echo "Matched package convention: production"
+
+        # pkg@X.Y.Z-uat.N or @scope/pkg@X.Y.Z-uat.N -> uat
+        elif [[ "$CURRENT_REF" =~ ^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$ ]]; then
+          set_env "ENVIRONMENT=uat"
+          set_output "environment=uat"
+          echo "Matched package convention: uat"
+
+        # ------------------------
+        # BRANCH / EVENTS
+        # ------------------------
         elif [[ "$CURRENT_REF" =~ "$DEFAULT_BRANCH" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
-          echo "ENVIRONMENT set to 'stage'."
-        elif [[ "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
+          echo "Matched default branch: stage"
+
+        elif [[ -z "${FORCE_REF:-}" && "${DEV_EVENTS[*]}" =~ "$GITHUB_EVENT_NAME" ]]; then
           set_env "ENVIRONMENT=stage"
           set_output "environment=stage"
-          echo "ENVIRONMENT set to 'stage'."
+          echo "Matched dev event: stage"
+
         else
-          echo "Error:"
-          echo "The tag created for this deployment does not match defined conventions."
-          echo "Check the README's 'Releases and deployments' section for more details."
+          echo "Error: ref '$CURRENT_REF' does not match any supported convention."
+          echo "Supported conventions:"
+          echo "  - Standard: vX.Y.Z | vX.Y.Z-uat.N"
+          echo "  - Package: <pkg>@X.Y.Z | <pkg>@X.Y.Z-uat.N | @scope/<pkg>@X.Y.Z"
           exit 1
         fi

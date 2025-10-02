@@ -1,19 +1,9 @@
 name: 🧪 Tests
 
 on:
-  push:
-    paths-ignore:
-      - 'CODE_OF_CONDUCT`'
-      - 'LICENSE'
-      - 'README.md'
-    branches:
-      - main
-    tags:
-      - v[0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2}
-      - v[0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2}-uat.[0-9]
   pull_request:
     paths-ignore:
-      - 'CODE_OF_CONDUCT`'
+      - 'CODE_OF_CONDUCT'
       - 'LICENSE'
       - 'README.md'
     branches:
@@ -30,22 +20,115 @@ jobs:
       - name: 💻 Checkout current code ref
         uses: actions/checkout@v4
 
-      - name: 📝 Set ENVIRONMENT
-        id: env
+      # Conventional Release Tags
+      - name: 🧪 Test Conventional Release v1.0.0
+        id: test-production-conventional
+        uses: ./
+        env:
+          FORCE_REF: v1.0.0
+
+      - name: ✅ Verify v1.0.0 is production
+        run: |
+          if [[ "${{ steps.test-production-conventional.outputs.environment }}" != "production" ]]; then
+            echo "❌ Expected 'production' but got '${{ steps.test-production-conventional.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly set to 'production'"
+
+      # UAT Tags
+      - name: 🧪 Test UAT Release v1.0.0-uat.1
+        id: test-uat-conventional
+        uses: ./
+        env:
+          FORCE_REF: v1.0.0-uat.1
+
+      - name: ✅ Verify v1.0.0-uat.1 is uat
+        run: |
+          if [[ "${{ steps.test-uat-conventional.outputs.environment }}" != "uat" ]]; then
+            echo "❌ Expected 'uat' but got '${{ steps.test-uat-conventional.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly set to 'uat'"
+
+      # Package Release Tags
+      - name: 🧪 Test Package Release @gbh-tech/internal-jobs@1.0.0
+        id: test-production-package
+        uses: ./
+        env:
+          FORCE_REF: "@gbh-tech/internal-jobs@1.0.0"
+
+      - name: ✅ Verify @gbh-tech/internal-jobs@1.0.0 is production
+        run: |
+          if [[ "${{ steps.test-production-package.outputs.environment }}" != "production" ]]; then
+            echo "❌ Expected 'production' but got '${{ steps.test-production-package.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly set to 'production'"
+
+      # UAT Package Tags
+      - name: 🧪 Test UAT Package @gbh-tech/internal-jobs@1.0.0-uat.1
+        id: test-uat-package
+        uses: ./
+        env:
+          FORCE_REF: "@gbh-tech/internal-jobs@1.0.0-uat.1"
+
+      - name: ✅ Verify @gbh-tech/internal-jobs@1.0.0-uat.1 is uat
+        run: |
+          if [[ "${{ steps.test-uat-package.outputs.environment }}" != "uat" ]]; then
+            echo "❌ Expected 'uat' but got '${{ steps.test-uat-package.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly set to 'uat'"
+
+      # Invalid Tags (should fail)
+      - name: 🧪 Test Invalid Tag invalid-tag
+        id: test-invalid-tag
+        uses: ./
+        env:
+          FORCE_REF: "1.1"
+        continue-on-error: true
+
+      - name: ✅ Verify invalid-tag fails
+        run: |
+          if [[ "${{ steps.test-invalid-tag.outcome }}" == "success" ]]; then
+            echo "❌ Action should have failed for invalid tag but it succeeded"
+            exit 1
+          fi
+          echo "✅ Action correctly failed for invalid tag"
+
+      # Branch Scenarios
+      - name: 🧪 Test Default Branch (main)
+        id: test-branch-main
+        uses: ./
+        env:
+          GITHUB_REF: refs/heads/main
+          GITHUB_EVENT_NAME: pull_request
+
+      - name: ✅ Verify main branch is stage
+        run: |
+          if [[ "${{ steps.test-branch-main.outputs.environment }}" != "stage" ]]; then
+            echo "❌ Expected 'stage' but got '${{ steps.test-branch-main.outputs.environment }}'"
+            exit 1
+          fi
+          echo "✅ Correctly set to 'stage'"
+
+      # Current PR Context
+      - name: 🧪 Test Current PR Context
+        id: test-current-pr
         uses: ./
 
-      - name: Check ENVIRONMENT matches expected value
+      - name: ✅ Verify current PR is stage
         run: |
-          if [[ "$GITHUB_REF_NAME" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})$ ]]; then
-            if [[ ${{ steps.env.outputs.environment }} != 'production' ]]; then
-              exit 1;
-            fi
-          elif [[ "$GITHUB_REF_NAME" =~ ^v([0-9]{1,2}.[0-9]{1,2}.[0-9]{1,2})(-uat.[0-9]{1,2})$ ]]; then
-            if [[ ${{ steps.env.outputs.environment }} != 'uat' ]]; then
-              exit 1;
-            fi
-          else
-            if [[ ${{ steps.env.outputs.environment }} != 'stage' ]]; then
-              exit 1;
-            fi
+          if [[ "${{ steps.test-current-pr.outputs.environment }}" != "stage" ]]; then
+            echo "❌ Expected 'stage' for PR but got '${{ steps.test-current-pr.outputs.environment }}'"
+            exit 1
           fi
+          echo "✅ Correctly identified PR as 'stage'"
+
+      - name: 🧪 Test environment variable is set
+        run: |
+          if [[ -z "$ENVIRONMENT" ]]; then
+            echo "❌ ENVIRONMENT variable is not set"
+            exit 1
+          fi
+          echo "✅ ENVIRONMENT variable is set to: $ENVIRONMENT"
