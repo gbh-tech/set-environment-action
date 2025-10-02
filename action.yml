@@ -39,20 +39,20 @@ runs:
         echo "Current ref    : ${CURRENT_REF}"
         echo
 
+        re_pkg_prod='^.+@[0-9]+\.[0-9]+\.[0-9]+$'
+        re_pkg_uat='^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
+
         # ------------------------
         # STANDARD CONVENTION
         # ------------------------
-        re_standard_prod='^v[0-9]+\.[0-9]+\.[0-9]+$'
-        re_standard_uat='^v[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
-
         # vX.Y.Z -> production
-        if [[ "$CURRENT_REF" =~ $re_standard_prod ]]; then
+        if [[ "$CURRENT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           set_env "ENVIRONMENT=production"
           set_output "environment=production"
           echo "Matched standard convention: production"
 
         # vX.Y.Z-uat.N -> uat
-        elif [[ "$CURRENT_REF" =~ $re_standard_uat ]]; then
+        elif [[ "$CURRENT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$ ]]; then
           set_env "ENVIRONMENT=uat"
           set_output "environment=uat"
           echo "Matched standard convention: uat"
@@ -60,8 +60,6 @@ runs:
         # ------------------------
         # PACKAGE CONVENTION
         # ------------------------
-        re_pkg_prod='^.+@[0-9]+\.[0-9]+\.[0-9]+$'
-        re_pkg_uat='^.+@[0-9]+\.[0-9]+\.[0-9]+-uat\.[0-9]+$'
 
         # pkg@X.Y.Z or @scope/pkg@X.Y.Z -> production
         elif [[ "$CURRENT_REF" =~ $re_pkg_prod ]]; then
@@ -95,5 +93,3 @@ runs:
           echo "  - Package: <pkg>@X.Y.Z | <pkg>@X.Y.Z-uat.N | @scope/<pkg>@X.Y.Z"
           exit 1
         fi
-
-        echo "Final ENVIRONMENT: $(grep '^ENVIRONMENT=' \"$GITHUB_ENV\" | tail -1 | cut -d= -f2)"
